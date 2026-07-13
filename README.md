@@ -17,15 +17,15 @@ What remains is a **world**, a **reward signal**, and a mandate to figure the re
 
 ## Episode 0 — The World Before Training
 
-The environment is a **10×10 factory floor**: 100 cells, 4 possible moves, one destination.
+The environment is a **11×11 factory floor**: 121 cells, 4 possible moves, one destination.
 
 ```
 ┌────────────────────────────────────────────┐
-│  Grid      : 10 × 10  =  100 states        │
+│  Grid      : 11 × 11  =  121 states        │
 │  Actions   : Up · Down · Left · Right       │
-│  Obstacles : 10 fixed walls and equipment   │
+│  Obstacles : 11 fixed walls and equipment   │
 │  Congestion: 3 high-traffic aisles          │
-│  Goal      : Delivery dock at cell (9, 9)  │
+│  Goal      : Delivery dock at cell (10, 10) │
 └────────────────────────────────────────────┘
 ```
 
@@ -35,7 +35,7 @@ The reward function is the only teacher:
 
 | Event | Reward | What it teaches |
 |---|---|---|
-| Reach dock (9,9) | **+100** | The only thing that matters is getting there |
+| Reach dock (10,10) | **+100** | The only thing that matters is getting there |
 | Hit wall or obstacle | **−50** | Walls are expensive. Learn them fast. |
 | Cross congestion zone | **−1 − 10 = −11** | Busy aisles cost time and throughput |
 | Normal move | **−1** | Time is money. Don't wander. |
@@ -46,11 +46,11 @@ The negative step cost is not incidental — it is the pressure that produces th
 
 ## Episodes 1–100 — The Agent Knows Nothing
 
-The agent begins with a Q-table of zeros: `Q(s, a) = 0` for all 100 states and 4 actions. Every entry says the same thing — *"I have no idea."*
+The agent begins with a Q-table of zeros: `Q(s, a) = 0` for all 121 states and 4 actions. Every entry says the same thing — *"I have no idea."*
 
 Epsilon starts at 1.0. Every decision is random. The agent walks into walls. It wanders into congestion zones. It occasionally finds the goal by chance.
 
-**Mean reward, Episodes 1–100: −820.8**
+**Mean reward, Episodes 1–100: −980.9**
 
 That number tells the full story. The agent is absorbing −50 wall penalties repeatedly, spending 200-step budgets without reaching the dock, accumulating hundreds of negative reward points per episode before the environment resets and starts over.
 
@@ -68,11 +68,11 @@ Where α = 0.1 (learning rate) and γ = 0.95 (discount factor — future rewards
 
 Something shifts around episode 100. The Q-table has accumulated enough wall collisions that the agent has learned, imprecisely, which moves lead to punishment. Exploration is still dominant — epsilon has decayed from 1.0 to approximately 0.61 — but the agent is no longer purely random.
 
-**Mean reward, Episodes 101–500: +37.0**
+**Mean reward, Episodes 101–500: +29.2**
 
 The agent is reaching the dock more often than not. Routes are longer than optimal — it hasn't learned to avoid congestion or route efficiently around the vertical obstacle wall — but the fundamental behavior has flipped: the agent is now net-positive.
 
-By episode 299, the 200-episode rolling mean crosses zero for good. The agent has broken even. From this point forward, rewards accumulate.
+By episode 312, the 200-episode rolling mean crosses zero for good. The agent has broken even. From this point forward, rewards accumulate.
 
 ---
 
@@ -80,40 +80,40 @@ By episode 299, the 200-episode rolling mean crosses zero for good. The agent ha
 
 By episode 500, epsilon has fallen to 0.082. The agent exploits its Q-table over 91% of the time. Random exploration becomes increasingly rare. What was carved roughly in the early episodes is now being refined.
 
-**Mean reward, Episodes 501–1,000: +86.2**
+**Mean reward, Episodes 501–1,000: +84.2**
 
-The Q-table is converging toward its final form. Eighty-eight of the 100 cells have a clear dominant action — the entry that maximizes expected future reward is significantly larger than the alternatives. The policy is becoming deterministic.
+The Q-table is converging toward its final form. Over 100 of the 121 cells have a clear dominant action — the entry that maximizes expected future reward is significantly larger than the alternatives. The policy is becoming deterministic.
 
 The full arc of training, in five phases:
 
 | Phase | Episodes | ε Range | Behavior | Mean Reward |
 |---|---|---|---|---|
-| Pure exploration | 1 – 100 | 1.00 → 0.61 | Random decisions, heavy wall penalties | −820.8 |
-| Rapid learning | 101 – 500 | 0.61 → 0.08 | Pattern recognition, first reliable routes | +37.0 |
-| Policy refinement | 501 – 1,000 | 0.08 → 0.07 | Route optimization, congestion avoidance | +86.2 |
-| Exploitation dominant | 1,001 – 2,000 | 0.07 → 0.05 | Near-greedy behavior, stable navigation | +86.1 |
-| Near-optimal routing | 2,001 – 5,000 | 0.05 (floor) | Full exploitation of learned policy | +86.4 |
+| Pure exploration | 1 – 100 | 1.00 → 0.61 | Random decisions, heavy wall penalties | −980.9 |
+| Rapid learning | 101 – 500 | 0.61 → 0.08 | Pattern recognition, first reliable routes | +29.2 |
+| Policy refinement | 501 – 1,000 | 0.08 → 0.05 | Route optimization, congestion avoidance | +84.2 |
+| Exploitation dominant | 1,001 – 2,000 | 0.05 (floor) | Near-greedy behavior, stable navigation | +84.5 |
+| Near-optimal routing | 2,001 – 5,000 | 0.05 (floor) | Full exploitation of learned policy | +85.4 |
 
-The total improvement from first episodes to last: **−820.8 → +85.3** — a swing of over 900 reward points across 5,000 episodes of trial, consequence, and adaptation.
+The total improvement from first episodes to last: **−980.9 → +86.5** — a swing of over 1,060 reward points across 5,000 episodes of trial, consequence, and adaptation.
 
 ---
 
 ## Episode 5,000 — What the Agent Learned
 
-The trained Q-table is a 100 × 4 matrix. Every entry is a number the agent earned the hard way.
+The trained Q-table is a 121 × 4 matrix. Every entry is a number the agent earned the hard way.
 
-**Policy distribution across 100 cells:**
+**Policy distribution across 121 cells:**
 
 | Best action | Cells | Interpretation |
 |---|---|---|
-| `down` | 47 | The dock is at row 9 — most cells need to move south |
-| `right` | 41 | The dock is at col 9 — most cells need to move east |
-| `up` | 11 | Cells below a wall segment that forces detour |
+| `down` | 57 | The dock is at row 10 — most cells need to move south |
+| `right` | 45 | The dock is at col 10 — most cells need to move east |
+| `up` | 18 | Cells below a wall segment that forces detour |
 | `left` | 1 | One specific cell where left is the only valid escape |
 
-The arrows collectively form a **flow field** across the factory floor: a river of decisions converging on (9,9), routing around the vertical wall at columns 4–7 and the four scattered obstacle blocks.
+The arrows collectively form a **flow field** across the factory floor: a river of decisions converging on (10,10), routing around the vertical wall at column 5 (rows 1–7) and the four scattered obstacle blocks.
 
-**Q\* range across all states: 0.00 – 100.00** (mean: 54.33). High Q\* values cluster near the dock and along clear approach corridors. Low values mark dead-ends, cells adjacent to obstacles, and positions where the agent must take a long detour.
+**Q\* range across all states: 0.00 – 99.00** (mean: 50.22). High Q\* values cluster near the dock and along clear approach corridors. Low values mark dead-ends, cells adjacent to obstacles, and positions where the agent must take a long detour.
 
 ---
 
@@ -123,29 +123,29 @@ The trained policy is tested from three start positions using the greedy strateg
 
 **Scenario A — Corner to Corner** `start: (0,0)`
 
-The maximum-distance run. The agent navigates from the top-left corner to the dock at (9,9), routing down the left side of the floor, cutting east below the vertical wall, and sweeping along the bottom row.
+The maximum-distance run. The agent navigates from the top-left corner to the dock at (10,10), routing along the left side of the floor, cutting east below the vertical wall, and sweeping along the bottom row.
 
 ```
-Path  : (0,0)→(1,0)→...→(5,3)→(6,3)→(7,3)→(8,3)→(8,4)→(9,4)→...→(9,9)
-Steps : 18   |   Reward : 83.0   |   Goal reached : ✓
+Path  : (0,0)→(0,1)→(1,1)→(2,1)→(3,1)→(4,1)→(4,2)→(5,2)→...→(10,10)
+Steps : 20   |   Reward : 80.0   |   Goal reached : ✓
 ```
 
-**Scenario B — Right Column Sprint** `start: (0,9)`
+**Scenario B — Right Column Sprint** `start: (0,10)`
 
-Starting at the top-right corner, the agent discovers the clearest route: straight down column 9. No obstacles, no congestion, no detours.
+Starting at the top-right corner, the agent takes the clearest route toward the dock, staying close to column 10 and avoiding the vertical wall cluster.
 
 ```
-Path  : (0,9)→(1,9)→(2,9)→(3,9)→(4,9)→(5,9)→(6,9)→(7,9)→(8,9)→(9,9)
-Steps : 9   |   Reward : 92.0   |   Goal reached : ✓
+Path  : (0,10)→(1,10)→(2,10)→(2,9)→(3,9)→(4,9)→(5,9)→(6,9)→...→(10,10)
+Steps : 12   |   Reward : 88.0   |   Goal reached : ✓
 ```
 
 **Scenario C — Congestion Navigation** `start: (5,0)`
 
-Starting mid-left, the optimal route skirts the congestion zone rather than crossing it, adding one extra column of travel to avoid the −10 penalty on cells (4,5), (4,6), (4,7).
+Starting mid-left, the optimal route skirts the congestion zone rather than crossing it, adding extra column travel to avoid the −10 penalty on cells (4,6), (4,7), (4,8).
 
 ```
-Path  : (5,0)→(5,1)→(5,2)→(5,3)→(6,3)→(7,3)→(8,3)→(8,4)→(9,4)→...→(9,9)
-Steps : 13   |   Reward : 88.0   |   Goal reached : ✓
+Path  : (5,0)→(5,1)→(5,2)→(5,3)→(5,4)→(6,4)→(7,4)→(8,4)→...→(10,10)
+Steps : 15   |   Reward : 85.0   |   Goal reached : ✓
 ```
 
 ---
@@ -170,11 +170,11 @@ The agent's behavior is shaped by three parameters. Each was tested while holdin
 |---|---|---|
 | 0.70 | 86.17 | Myopic — adequate for nearby starts, poor for distant ones |
 | 0.80 | 84.81 | Near-myopic |
-| 0.90 | 84.00 | Slightly underplans in 10×10 horizon |
-| **0.95** | **85.61** | **Chosen — correct horizon for 100-state environment** |
+| 0.90 | 84.00 | Slightly underplans in 11×11 horizon |
+| **0.95** | **85.61** | **Chosen — correct horizon for 121-state environment** |
 | 0.99 | 86.83 | Slightly better numerically, longer to converge |
 
-γ = 0.95 means a reward 18 steps away (Scenario A) is still worth 95^18 ≈ 40% of its face value. For a 10×10 grid where the maximum optimal path is ~20 steps, the agent must plan far enough ahead — and 0.95 provides exactly that horizon.
+γ = 0.95 means a reward 20 steps away (Scenario A) is still worth 95^20 ≈ 36% of its face value. For an 11×11 grid where the maximum optimal path is ~22 steps, the agent must plan far enough ahead — and 0.95 provides exactly that horizon.
 
 ---
 
@@ -183,7 +183,7 @@ The agent's behavior is shaped by three parameters. Each was tested while holdin
 ```
 QLearning_AGV/
 ├── 22_QLearning_AGV.ipynb   # Educational notebook (no outputs)
-├── Data_AGV.csv             # Trained Q-table: 100 states × 9 columns
+├── Data_AGV.csv             # Trained Q-table: 121 states × 9 columns
 ├── requirements.txt
 └── README.md
 ```

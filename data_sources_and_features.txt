@@ -1,0 +1,57 @@
+PROJECT: 22_Qlearning_RL
+TITLE: Data Sources & Feature Engineering
+
+--------------------------------------------------
+OVERVIEW:
+This project uses a simulated 11x11 factory floor grid environment — no real-world sensor dataset is ingested. The agent learns entirely through interaction with the simulation over 5,000 episodes. The output artifact (Data_AGV.csv) is a trained Q-table (121 states x 9 columns) — this is training output, not training input. The environment simulates an Autonomous Guided Vehicle (AGV) navigating a factory floor with 11 fixed obstacles, 3 congestion zones, and a delivery dock at cell (10, 10).
+
+--------------------------------------------------
+REAL-WORLD DATA SOURCES:
+
+This project does not use a real-world dataset. The data source is a custom Python simulation environment:
+
+Environment Component   | Simulation Element              | Description
+------------------------|---------------------------------|------------------------------
+State space             | 11x11 grid = 121 states         | Each cell (row, col) is a discrete state representing the AGV's position on the factory floor
+Action space            | 4 actions                       | Up, Down, Left, Right — possible moves from any cell
+Obstacles               | 11 fixed cells                  | Walls and fixed equipment encoded as impassable cells; collision penalty: -50
+Congestion zones        | 3 high-traffic aisles           | Cells (4,6), (4,7), (4,8) — congestion penalty: -10 per crossing (in addition to -1 step cost)
+Goal state              | Cell (10, 10)                   | Delivery dock — reaching this cell yields reward: +100
+Step cost               | -1 per move                     | Pressure toward shortest path — without this cost, any path reaching the dock would be equivalent
+
+Reward function:
+
+Event                   | Reward   | Purpose
+------------------------|----------|------------------------------
+Reach dock (10, 10)     | +100     | The only terminal goal
+Hit wall or obstacle    | -50      | Teaches obstacle avoidance
+Cross congestion zone   | -1 + -10 = -11 | Discourages high-traffic aisles
+Normal move             | -1       | Produces efficiency pressure toward shortest path
+
+--------------------------------------------------
+VARIABLE DESCRIPTIONS (Q-table output columns in Data_AGV.csv):
+
+state           - Integer state index (0–120); corresponds to grid cell (row x 11 + col).
+row             - Row coordinate on the 11x11 grid (0–10).
+col             - Column coordinate on the 11x11 grid (0–10).
+Q_up            - Q-value for action Up from this state; learned through TD updates over 5,000 episodes.
+Q_down          - Q-value for action Down from this state; most cells favor Down because the dock is at row 10.
+Q_left          - Q-value for action Left from this state.
+Q_right         - Q-value for action Right from this state; most cells also favor Right because the dock is at column 10.
+best_action     - Greedy action: argmax over {Q_up, Q_down, Q_left, Q_right} for this state.
+best_Q          - Q* value: the maximum Q-value across all actions for this state. Range: 0.00–99.00, mean: 50.22.
+
+--------------------------------------------------
+FEATURE ENGINEERING:
+
+No feature engineering applied — the state is a discrete cell index, not a continuous feature vector. Q-Learning parameters: alpha (learning rate) = 0.10, gamma (discount factor) = 0.95, epsilon_start = 1.0, epsilon_min = 0.05, epsilon_decay = 0.995. Epsilon decays from 1.0 to 0.05 over ~5,000 episodes. Q-table initialized to zeros (121 x 4). Update rule: Q(s,a) <- Q(s,a) + alpha * [r + gamma * max_a'(Q(s',a')) - Q(s,a)]. Training: 5,000 episodes, max 200 steps per episode. Evaluation: greedy policy (epsilon=0) on three reference start positions.
+
+--------------------------------------------------
+BUSINESS CONTEXT:
+
+Models the decision problem of an Autonomous Guided Vehicle (AGV) on an industrial factory floor. The simulation captures the real operational constraints that AGV routing systems face: fixed obstacles (machinery, pillars), variable congestion zones (high-traffic aisles near assembly stations), and a cost structure that penalizes both path length (cycle time, energy) and aisle congestion (throughput interference). The reward function is the engineering specification in numerical form. The trained Q-table is a complete routing policy: for any of the 121 grid cells, the best_action column gives the optimal next move toward the dock.
+
+--------------------------------------------------
+GOAL:
+
+Train a Q-Learning agent to discover the optimal AGV routing policy on an 11x11 factory floor grid through 5,000 episodes of trial-and-error interaction with a simulated environment, without any labeled trajectory data. Training progression: mean reward -980.9 (episodes 1–100) to +86.5 (episodes 4,800–5,000) — a swing of 1,067 reward points. Policy distribution: Down (57 cells), Right (45 cells), Up (18 cells, forced by wall detours), Left (1 cell). Three test routes (corner-to-corner, right column, congestion navigation) all reach the dock with positive reward.
